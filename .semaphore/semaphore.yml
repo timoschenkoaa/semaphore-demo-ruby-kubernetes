@@ -1,51 +1,32 @@
 version: v1.0
 name: CI
-
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu1804
-
 blocks:
   - name: Install dependencies
     task:
       jobs:
         - name: bundle install
           commands:
-            # Checkout code from Git repository. This step is mandatory if the
-            # job is to work with your code.
-
             - checkout
-            - cache restore gems-$SEMAPHORE_GIT_BRANCH-$(checksum Gemfile.lock),gems-$SEMAPHORE_GIT_BRANCH,gems-master
+            - 'cache restore gems-$SEMAPHORE_GIT_BRANCH-$(checksum Gemfile.lock),gems-$SEMAPHORE_GIT_BRANCH,gems-master'
             - bundle install --deployment --path .bundle
             - cache store gems-$SEMAPHORE_GIT_BRANCH-$(checksum Gemfile.lock) .bundle
-            # Restore dependencies from cache, command won't fail if it's
-            # missing.
-            # More on caching: https://docs.semaphoreci.com/article/149-caching
             - cache restore
             - bundle config set deployment 'true'
             - bundle install --path vendor/bundle
-            # Store the latest version of dependencies in cache,
-            # to be used in next blocks and future workflows:
             - cache store
-
   - name: Tests
     task:
       jobs:
         - name: rspec
           commands:
             - checkout
-            - cache restore gems-$SEMAPHORE_GIT_BRANCH-$(checksum Gemfile.lock),gems-$SEMAPHORE_GIT_BRANCH,gems-master
+            - 'cache restore gems-$SEMAPHORE_GIT_BRANCH-$(checksum Gemfile.lock),gems-$SEMAPHORE_GIT_BRANCH,gems-master'
             - bundle install --deployment --path .bundle
-            ##- cache restore
-            # Bundler requires `install` to run even though cache has been
-            # restored, but generally this is not the case with other package
-            # managers. Installation will not actually run and command will
-            # finish quickly:
-            ## - bundle install --deployment --path vendor/bundle
-            # Run unit tests:
             - bundle exec rspec
-
 promotions:
   - name: Dockerize
     pipeline_file: docker-build.yml
